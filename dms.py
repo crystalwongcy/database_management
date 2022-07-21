@@ -6,104 +6,18 @@ from pymongo import MongoClient
 
 # %%
 git = pd.read_csv('gitData.csv')
-issues = pd.read_csv('gitIssues.csv')
+# create a new column of project types for gitData, which contains only pytorch and tensorflow 
+regx = r'({})'.format('|'.join(['pytorch', 'audio', 'text', 'vision', 'serve', 'torchrec','elastic', 'xla']))
+git['project_type'] = git['project_name'].str.replace(regx, "pytorch").fillna(git['project_name'])
 
 print("finish read data")
-# %%
+
+# new collection for git data
 # let's connect to the localhost
 client = MongoClient()
 
 # let's create a database 
 db = client.github
-
-# collection for git issues
-gitIssues = db.gitIssues
-
-# print connection
-print("""
-Database
-==========
-{}
-
-Collection
-==========
-{}
-""".format(db, gitIssues), flush=True
-)
-
-# %% 
-##
-##
-# slow loading of data
-d_gitissue = {}
-# pass data 
-for i in issues.index:
-    d_gitissue = {
-        "Questions": {
-            "Title": issues.loc[i,"title"],
-            "Body": issues.loc[i,"body"]
-        },
-        "User" : {
-            "Username" : issues.loc[i, "user"],
-            "User_ID" :  issues.loc[i,"user_id"]
-        },
-        "State" : {
-            "State" : issues.loc[i, "state"],
-            "Created_at" :  issues.loc[i,"created_at"],
-            "Updated_at" :  issues.loc[i,"updated_at"],
-            "Closed_at" : issues.loc[i, "closed_at"]
-        },
-        "Assignees" : issues.loc[i, "assignees"],
-        "Closed_by" : issues.loc[i, "closed_by"],
-        "Labels" : issues.loc[i, "labels"],
-        "Reactions" : issues.loc[i, "reactions"],
-        "N_comments" : issues.loc[i, "n_comments"].astype(str),
-        "Projects" : issues.loc[i, "project"]
-    }
-    break
-    # if i == 0 :
-    #     gitIssues.insert_one(d_gitissue)
-    # else:
-    #     if issues.loc[i,"title"] == issues.loc[i-1,"title"]:
-    #         continue
-    #     else:
-    #         gitIssues.insert_one(d_gitissue)
-
-# %%
-# new collection for issue comment
-IssueComment = db.IssueComment
-
-# print connection
-print("""
-Database
-==========
-{}
-
-Collection
-==========
-{}
-""".format(db, IssueComment), flush=True
-)
-
-# %%
-##
-# slow loading of data
-d_comment = {}
-# pass data 
-for i in issues.index:
-    d_comment = {
-        "Title": issues.loc[i,"title"],
-        "Comment_created_at": issues.loc[i,"comment_created_at"],
-        "Labels" : issues.loc[i, "labels"],
-        "Reactions" : issues.loc[i, "reactions"],
-        "N_comments" : issues.loc[i, "n_comments"].astype(str),
-        "Projects" : issues.loc[i, "project"]
-    }
-    break
-    #IssueComment.insert_one(d_comment)
-
-# %%
-# new collection for git data
 gitData = db.gitData
 
 # print connection
@@ -122,6 +36,9 @@ Collection
 # import the git data to mongo compass
 #%%time 
 ##
+##
+# import the git data to mongo compass
+#%%time 
 ##
 # slow loading of data
 d_gitcommit = {}
@@ -150,7 +67,10 @@ for i in git.index:
             "Merge": git.loc[i, 'merge'].astype(str),
             "Parents":git.loc[i, 'parents']
         },
-        "Project_name": git.loc[i, 'project_name'],
+        "Project_name": {
+            "Project_type" : git.loc[i, 'project_type'],
+            "Project_name": git.loc[i, 'project_name']
+            },
         "File":{
             "Filename": git.loc[i, 'filename'],
             "Change_type": git.loc[i, 'change_type'],
@@ -182,9 +102,8 @@ for i in git.index:
         "Complexity":git.loc[i, 'complexity'],
         "Token_count":git.loc[i, 'token_count']
         
-    }
-    break
-    #gitData.insert_one(d_gitcommit)
+     }
+    gitData.insert_one(d_gitcommit)
 
 print("finish data insert")
 print("start data clensing")
