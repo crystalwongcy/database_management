@@ -1,0 +1,9 @@
+numpy
+pandas
+jupyter
+psycopg2-binary
+pymongo
+beautifulsoup4
+requests
+pyspark == 3.0.1
+matplotlib
